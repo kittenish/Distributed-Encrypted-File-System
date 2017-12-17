@@ -1,0 +1,52 @@
+\begin{thebibliography}{10}
+
+\bibitem{TeXFAQ}
+{UK \TeX{} Users Group}.
+\newblock {UK} list of {\TeX} frequently asked questions.
+\newblock \url{http://www.tex.ac.uk}, 2016.
+
+\bibitem{Downes04:amsart}
+Michael Downes and Barbara Beeton.
+\newblock {\em The \textsf{amsart}, \textsf{amsproc}, and \textsf{amsbook}
+  document~classes}.
+\newblock American Mathematical Society, August 2004.
+\newblock \url{http://www.ctan.org/pkg/amslatex}.
+
+\bibitem{Fiorio15}
+Cristophe Fiorio.
+\newblock {\em {a}lgorithm2e.sty---package for algorithms}, October 2015.
+
+\bibitem{Brito09}
+Rog\'erio Brito.
+\newblock {\em The algorithms bundle}, August 2009.
+
+\bibitem{Heinz15}
+Carsten Heinz, Brooks Moses, and Jobst Hoffmann.
+\newblock {\em The Listings Package}, June 2015.
+\newblock \url{http://www.ctan.org/pkg/listings}.
+
+\bibitem{Fear05}
+Simon Fear.
+\newblock {\em Publication quality tables in {\LaTeX}}, April 2005.
+\newblock \url{http://www.ctan.org/pkg/booktabs}.
+
+\bibitem{ACMIdentityStandards}
+Association for Computing Machinery.
+\newblock {\em {ACM} Visual Identity Standards}, 2007.
+
+\bibitem{Sommerfeldt13:Subcaption}
+Axel Sommerfeldt.
+\newblock {\em The subcaption package}, April 2013.
+\newblock \url{http://www.ctan.org/pkg/subcaption}.
+
+\bibitem{Nomencl}
+Boris Veytsman, Bern Schandl, Lee Netherton, and CV~Radhakrishnan.
+\newblock {\em A package to create a nomenclature}, September 2005.
+\newblock \url{http://www.ctan.org/pkg/nomencl}.
+
+\bibitem{Talbot16:Glossaries}
+Nicola L.~C. Talbot.
+\newblock {\em User Manual for glossaries.sty v4.25}, June 2016.
+\newblock \url{http://www.ctan.org/pkg/subcaption}.
+
+\end{thebibliography}

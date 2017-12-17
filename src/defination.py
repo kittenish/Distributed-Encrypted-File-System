@@ -1,0 +1,17 @@
+import sys
+reload(sys)
+sys.setdefaultencoding('utf8')
+
+UPLOAD = (0)
+DOWNLOAD = (3)
+WRITE = (1)
+READ = (2)
+DELETE = (4)
+DATANODE = (5)
+NAMENODEHOST = ('127.0.0.1')
+NAMENODEPORT = (5001)
+DataNode_1 = (7001)
+DataNode_2 = (7002)
+DataNode_3 = (7003)
+DataNode_4 = (7004)
+DataNode_5 = (7005)

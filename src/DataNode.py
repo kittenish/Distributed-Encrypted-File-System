@@ -56,19 +56,23 @@ class DataNodeServer(object):
 						message = eval(message[0:length])
 						if message['type'] == str(WRITE):
 							path = self.path + str(message['fname'])
+							flag = 0
+							if not os.path.isfile(path):
+								flag = 1
 							content = str(message['cipherfile'])
 							fp = open(path,'wb')
 							fp.write(content)
 							fp.close()
 							print 'Finish writing ' + str(message['fname'])
-							self.size = self.size - os.path.getsize(path)
-							prepare_mess = {}
-							prepare_mess['type'] = str(DATANODE)
-							prepare_mess['id'] = self.port
-							prepare_mess['size'] = self.size
-							length = str(len(str(prepare_mess))).rjust(4,'0')
-							self.namenode.sendall(length + str(prepare_mess))
-							print 'Update size to '+str(self.size)+' kb...'
+							if flag == 1:
+								self.size = self.size - os.path.getsize(path)
+								prepare_mess = {}
+								prepare_mess['type'] = str(DATANODE)
+								prepare_mess['id'] = self.port
+								prepare_mess['size'] = self.size
+								length = str(len(str(prepare_mess))).rjust(4,'0')
+								self.namenode.sendall(length + str(prepare_mess))
+								print 'Update size to '+str(self.size)+' kb...'
 
 						elif message['type'] == str(READ):
 							path = self.path + str(message['fname'])

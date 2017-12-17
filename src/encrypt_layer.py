@@ -44,6 +44,51 @@ def _get_keys(USER_NAME, USER_PRK):
 
 	return USER_PK, USER_PRK, USER_AES
 
+def _get_write_lock(LOCK_SOCKET, en_file_name):
+
+	prepare_mess = {}
+	prepare_mess['fname'] = str(en_file_name)
+	prepare_mess['type'] = str(WRITE_LOCK)
+	prepare_mess['check'] = hash(str(prepare_mess['fname'])) & 0xffff
+	length = str(len(str(prepare_mess))).rjust(4,'0')
+	LOCK_SOCKET.sendall(length + str(prepare_mess))
+	mess = int(LOCK_SOCKET.recv(1))
+	return mess
+
+def _release_write_lock(LOCK_SOCKET, en_file_name):
+
+	prepare_mess = {}
+	prepare_mess['fname'] = str(en_file_name)
+	prepare_mess['type'] = str(WRITE_RELEASE)
+	prepare_mess['check'] = hash(str(prepare_mess['fname'])) & 0xffff
+	length = str(len(str(prepare_mess))).rjust(4,'0')
+	LOCK_SOCKET.sendall(length + str(prepare_mess))
+	mess = int(LOCK_SOCKET.recv(1))
+	return mess
+
+def _get_read_lock(LOCK_SOCKET, en_file_name):
+
+	prepare_mess = {}
+	prepare_mess['fname'] = str(en_file_name)
+	prepare_mess['type'] = str(READ_LOCK)
+	prepare_mess['check'] = hash(str(prepare_mess['fname'])) & 0xffff
+	length = str(len(str(prepare_mess))).rjust(4,'0')
+	LOCK_SOCKET.sendall(length + str(prepare_mess))
+	mess = int(LOCK_SOCKET.recv(1))
+	return mess
+
+def _release_read_lock(LOCK_SOCKET, en_file_name):
+
+	prepare_mess = {}
+	prepare_mess['fname'] = str(en_file_name)
+	prepare_mess['type'] = str(READ_RELEASE)
+	prepare_mess['check'] = hash(str(prepare_mess['fname'])) & 0xffff
+	length = str(len(str(prepare_mess))).rjust(4,'0')
+	LOCK_SOCKET.sendall(length + str(prepare_mess))
+	mess = int(LOCK_SOCKET.recv(1))
+	return mess
+
+
 def _inquire(fname, SOCKET, fsize):
 
 	prepare_mess = {}
@@ -359,7 +404,7 @@ def cd(user, path, args):
 			info = 'no such directory'
 			return False, info, path
 
-def rm(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args):
+def rm(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, args):
 
 	# verify command
 	rm_file = args[0]
@@ -413,10 +458,15 @@ def rm(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args):
 		
 		DataNode = _get_datanode(SOCKET)
 		
+		while _get_write_lock(LOCK_SOCKET, en_file_name) == 0:
+			pass
+
 		for i in DataNode.keys():
 			for j in DataNode[i]:
 				_delete_on_datanode(en_file_name+'_'+str(i), j, ALL_SOCKET[j], int(i))
 			
+		_release_write_lock(LOCK_SOCKET, en_file_name)
+
 		_delete_on_namenode(en_file_name, SOCKET)
 
 	except:
@@ -428,7 +478,7 @@ def rm(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args):
 	return True, info
 	
 
-def rm_r(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args):
+def rm_r(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, args):
 
 	rm_dir = args[0]
 
@@ -454,7 +504,7 @@ def rm_r(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args):
 	
 	for parent,dirnames,filenames in os.walk(rm_path):
 		for filename in filenames:
-			rm(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, [os.path.join(parent,filename)])
+			rm(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, [os.path.join(parent,filename)])
 			os.remove(os.path.join(parent,filename))
 		
 
@@ -470,7 +520,7 @@ def rm_r(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args):
 		info = 'no such directory'
 		return False, info
 
-def upload(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args):
+def upload(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, args):
 
 	# verify command
 	SOURCE = args[0]
@@ -541,6 +591,10 @@ def upload(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args):
 
 		#_upload_DataNode(USER_IP, cipherfile[0:16384], DataNode_1, 1, en_file_name)
 		
+		# get lock
+		while _get_write_lock(LOCK_SOCKET, en_file_name) == 0:
+			pass
+
 		for i in DataNode.keys():
 			for j in DataNode[i]:
 				if int(i) != len(cipherfile) / 16384 + 1:
@@ -548,6 +602,8 @@ def upload(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args):
 				else:
 					_upload_DataNode(USER_IP, cipherfile[(int(i)-1)*16384:len(cipherfile)], ALL_SOCKET[int(j)], int(i), en_file_name+'_'+str(i), int(j))			
 		
+		_release_write_lock(LOCK_SOCKET, en_file_name)
+
 		# upload to the datanode
 		# os.system(PASS + 'scp ' + EN_DEST_FILE + SERVER)
 		os.rename(EN_DEST_FILE, DEST_FILE)
@@ -558,7 +614,7 @@ def upload(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args):
 	info = 'succeed'
 	return True, info
 
-def download(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args):
+def download(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, args):
 
 	#verigy command
 	source = args[0]
@@ -587,7 +643,7 @@ def download(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args):
 	if not os.path.isfile(source_file):
 		info = 'no such source file'
 		return False, info
-
+	_USER_PRK = USER_PRK
 	try:
 		USER_PK, USER_PRK, USER_AES = _get_keys(USER_NAME, USER_PRK)
 	except:
@@ -607,6 +663,9 @@ def download(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args):
 
 		#_upload_DataNode(USER_IP, cipherfile[0:16384], DataNode_1, 1, en_file_name)
 		
+		while _get_read_lock(LOCK_SOCKET, en_file_name) == 0:
+			pass
+
 		i = 1
 		cipherfile = ''
 		while DataNode.has_key(str(i)):
@@ -619,6 +678,8 @@ def download(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args):
 				# else:
 				# 	_upload_DataNode(USER_IP, cipherfile[(int(i)-1)*16384:len(cipherfile)], ALL_SOCKET[j], int(i), en_file_name+'_'+str(i), j)			
 		
+		_release_read_lock(LOCK_SOCKET, en_file_name)
+
 		source_split = source.split('/')
 		filename = source_split[-1]
 
@@ -648,7 +709,27 @@ def download(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args):
 			source_path = source_split[:-1]
 			en_source = EFS_DIR + '/'.join(source_path) + '/' + en_file_name
 			os.rename(source_file, en_source)
-			os.system(PASS + 'scp ' + en_source + SERVER)
+			#os.system(PASS + 'scp ' + en_source + SERVER)
+			
+			with open(en_source, 'w') as f:
+				cipherfile = f.read()
+		
+			_inquire(en_file_name, SOCKET, len(cipherfile))
+		
+			DataNode = _get_datanode(SOCKET)
+		
+			while _get_write_lock(LOCK_SOCKET, en_file_name) == 0:
+				pass
+
+			for i in DataNode.keys():
+				for j in DataNode[i]:
+					if int(i) != len(cipherfile) / 16384 + 1:
+						_upload_DataNode(USER_IP, cipherfile[(int(i)-1)*16384:int(i)*16384], ALL_SOCKET[int(j)], int(i), en_file_name+'_'+str(i), int(j))
+					else:
+						_upload_DataNode(USER_IP, cipherfile[(int(i)-1)*16384:len(cipherfile)], ALL_SOCKET[int(j)], int(i), en_file_name+'_'+str(i), int(j))			
+			
+			_release_write_lock(LOCK_SOCKET, en_file_name)
+
 			os.rename(en_source, source_file)
 			info = 'and the backup file has been uploaded, please read again'
 			return False, info
@@ -673,7 +754,7 @@ def download(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args):
 			info = 'decrypt error'
 			return False, info
 
-def mv(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args):
+def mv(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, args):
 
 	old_name = args[0]
 	new_name = args[1]
@@ -732,14 +813,14 @@ def mv(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args):
 		# en_old_file_name = en_old_file_name.replace("/",r"_")[0:100]
 		# en_new_file_name = encrypt.encrypt_filename(USER_PK, new_file)
 		# en_new_file_name = en_new_file_name.replace("/",r"_")[0:100]
-		download(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, [args[0], '/Users/mac/Desktop'])
-		rm(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, [old_name])
+		download(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, [args[0], '/Users/mac/Desktop'])
+		rm(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, [old_name])
 		new_split = new_name.split('/')
 		new_filename = new_split[-1]
 		old_split = old_name.split('/')
 		old_filename = old_split[-1]
 		os.rename('/Users/mac/Desktop/'+old_filename, '/Users/mac/Desktop/'+new_filename)
-		upload(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, ['/Users/mac/Desktop/'+new_filename, '/'.join(new_split[0:len(new_split)-1])])
+		upload(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKETs, ['/Users/mac/Desktop/'+new_filename, '/'.join(new_split[0:len(new_split)-1])])
 		#os.system(PASS + 'ssh ' + SSH_SERVER + ' mv ' + SERVER_PATH + en_old_file_name + ' ' + SERVER_PATH + en_new_file_name)
 		os.remove('/Users/mac/Desktop/'+new_filename)
 		os.rename(old_file, new_file)
@@ -750,7 +831,7 @@ def mv(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args):
 	info = 'succeed'
 	return True, info
 
-def cp(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args):
+def cp(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, args):
 
 	old_name = args[0]
 	new_name = args[1]
@@ -810,13 +891,13 @@ def cp(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args):
 		# en_new_file_name = encrypt.encrypt_filename(USER_PK, new_file)
 		# en_new_file_name = en_new_file_name.replace("/",r"_")[0:100]
 
-		download(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, [args[0], '/Users/mac/Desktop'])
+		download(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, [args[0], '/Users/mac/Desktop'])
 		new_split = new_name.split('/')
 		new_filename = new_split[-1]
 		old_split = old_name.split('/')
 		old_filename = old_split[-1]
 		os.rename('/Users/mac/Desktop/'+old_filename, '/Users/mac/Desktop/'+new_filename)
-		upload(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, ['/Users/mac/Desktop/'+new_filename, '/'.join(new_split[0:len(new_split)-1])])
+		upload(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, ['/Users/mac/Desktop/'+new_filename, '/'.join(new_split[0:len(new_split)-1])])
 		#os.system(PASS + 'ssh ' + SSH_SERVER + ' mv ' + SERVER_PATH + en_old_file_name + ' ' + SERVER_PATH + en_new_file_name)
 		os.remove('/Users/mac/Desktop/'+new_filename)
 	except:
@@ -864,7 +945,7 @@ def check_share(USER_NAME, USER_PATH, source, pair):
 	info = 'succeed'
 	return True, info
 
-def prepare_share(USER_NAME, USER_PATH, USER_PRK, source, pair_user_mode, pair_user_loc, USER_IP, SOCKET, ALL_SOCKET):
+def prepare_share(USER_NAME, USER_PATH, USER_PRK, source, pair_user_mode, pair_user_loc, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET):
 
 	share_user = pair_user_mode.keys()
 	share_file = '_'.join(share_user)
@@ -1022,9 +1103,9 @@ def prepare_share(USER_NAME, USER_PATH, USER_PRK, source, pair_user_mode, pair_u
 		# en_share_file_name = encrypt.encrypt_filename(USER_PK, dest_file)
 		# en_share_file_name = en_share_file_name.replace("/",r"_")[0:100]
 
-		download(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, [source, '/Users/mac/Desktop'])
-		rm(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, [filename])
-		upload(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, ['/Users/mac/Desktop/'+filename, share_file])
+		download(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, [source, '/Users/mac/Desktop'])
+		rm(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, [filename])
+		upload(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, ['/Users/mac/Desktop/'+filename, share_file])
 		#os.system(PASS + 'ssh ' + SSH_SERVER + ' mv ' + SERVER_PATH + en_old_file_name + ' ' + SERVER_PATH + en_new_file_name)
 		os.remove('/Users/mac/Desktop/'+filename)
 		#os.rename(old_file, new_file)
@@ -1045,7 +1126,7 @@ def prepare_share(USER_NAME, USER_PATH, USER_PRK, source, pair_user_mode, pair_u
 	info = share_file
 	return True, info
 
-def upload_share(USER_NAME, USER_IP, SOCKET, ALL_SOCKET, args):
+def upload_share(USER_NAME, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, args):
 
 	file_path = args[0]
 	group_name = args[1]
@@ -1123,7 +1204,8 @@ def upload_share(USER_NAME, USER_IP, SOCKET, ALL_SOCKET, args):
 		
 	DataNode = _get_datanode(SOCKET)
 
-	#_upload_DataNode(USER_IP, cipherfile[0:16384], DataNode_1, 1, en_file_name)
+	while _get_write_lock(LOCK_SOCKET, en_share_path) == 0:
+		pass
 		
 	for i in DataNode.keys():
 		for j in DataNode[i]:
@@ -1132,6 +1214,7 @@ def upload_share(USER_NAME, USER_IP, SOCKET, ALL_SOCKET, args):
 			else:
 				_upload_DataNode(USER_IP, cipherfile[(int(i)-1)*16384:len(cipherfile)], ALL_SOCKET[int(j)], int(i), en_share_path+'_'+str(i), int(j))			
 		
+	_release_write_lock(LOCK_SOCKET, en_share_path)
 	#os.system(PASS + 'scp ' + EFS_DIR + group_name + '/' + en_share_path + ' ' + SERVER)
 	os.rename(EFS_DIR + group_name + '/' + en_share_path, share_path)
 
@@ -1147,7 +1230,7 @@ def upload_share(USER_NAME, USER_IP, SOCKET, ALL_SOCKET, args):
 	info = 'succeed'
 	return True, info
 
-def download_share(USER_NAME, USER_IP, SOCKET, ALL_SOCKET, args):
+def download_share(USER_NAME, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, args):
 	file_path = args[0]
 	loc_RSA_1 = args[1]
 	loc_RSA_2 = args[2]
@@ -1212,7 +1295,10 @@ def download_share(USER_NAME, USER_IP, SOCKET, ALL_SOCKET, args):
 	DataNode = _get_datanode(SOCKET)
 
 	#_upload_DataNode(USER_IP, cipherfile[0:16384], DataNode_1, 1, en_file_name)
-		
+	
+	while _get_read_lock(LOCK_SOCKET, en_file_name) == 0:
+		pass
+
 	i = 1
 	cipherfile = ''
 	while DataNode.has_key(str(i)):
@@ -1220,6 +1306,8 @@ def download_share(USER_NAME, USER_IP, SOCKET, ALL_SOCKET, args):
 		data = str(_download_DataNode(en_file_name+'_'+str(i), datanode_port, ALL_SOCKET[datanode_port], int(i)))
 		cipherfile = cipherfile + data
 		i = i + 1
+
+	_release_read_lock(LOCK_SOCKET, en_file_name)
 
 	# os.rename(save_pos + '/' + en_file_name, save_pos + '/' + filename)
 	#os.rename(save_pos + '/' + en_file_name, save_pos + '/' + filename)
@@ -1240,7 +1328,25 @@ def download_share(USER_NAME, USER_IP, SOCKET, ALL_SOCKET, args):
 			split_real_path = split_real_path[:-1]
 			en_source = '/'.join(split_real_path) + '/' + en_file_name
 			os.rename(real_path, en_source)
-			os.system(PASS + 'scp ' + en_source + SERVER)
+			#os.system(PASS + 'scp ' + en_source + SERVER)
+			with open(en_source, 'w') as f:
+				cipherfile = f.read()
+		
+			_inquire(en_file_name, SOCKET, len(cipherfile))
+		
+			DataNode = _get_datanode(SOCKET)
+		
+			while _get_write_lock(LOCK_SOCKET, en_file_name) == 0:
+				pass
+
+			for i in DataNode.keys():
+				for j in DataNode[i]:
+					if int(i) != len(cipherfile) / 16384 + 1:
+						_upload_DataNode(USER_IP, cipherfile[(int(i)-1)*16384:int(i)*16384], ALL_SOCKET[int(j)], int(i), en_file_name+'_'+str(i), int(j))
+					else:
+						_upload_DataNode(USER_IP, cipherfile[(int(i)-1)*16384:len(cipherfile)], ALL_SOCKET[int(j)], int(i), en_file_name+'_'+str(i), int(j))			
+		
+			_release_write_lock(LOCK_SOCKET, en_file_name)
 			os.rename(en_source, real_path)
 			info = info + ' and the backup file has been uploaded, please download again'
 			return False, info

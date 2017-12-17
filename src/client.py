@@ -18,6 +18,7 @@ LOGIN_IN = False
 USER_IP = None
 SOCKET = None
 ALL_SOCKET = None
+LOCK_SOCKET = None
 
 EFS_DIR = '/Users/mac/Desktop/Distributed-Encrypted-File-System/DEFS/Client/'
 
@@ -34,7 +35,7 @@ def verifyargs(cmd, args, length):
 
 def execute(cmd, args):
 
-	global USER_NAME, USER_PRK, USER_PATH, LOGIN_IN, USER_IP, SOCKET, ALL_SOCKET
+	global USER_NAME, USER_PRK, USER_PATH, LOGIN_IN, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET
 
 	if cmd == 'help':
 		dic_help = {}
@@ -165,32 +166,38 @@ def execute(cmd, args):
 			temp_socket_1 = socket.socket()
 			temp_socket_1.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 			temp_socket_1.bind(('127.0.0.1', int(USER_IP)))
-			temp_socket_1.connect((NAMENODEHOST, DataNode_1))
+			temp_socket_1.connect((DATANODEHOST, DataNode_1))
 			ALL_SOCKET[DataNode_1] = temp_socket_1
 
 			temp_socket_2 = socket.socket()
 			temp_socket_2.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 			temp_socket_2.bind(('127.0.0.1', int(USER_IP)))
-			temp_socket_2.connect((NAMENODEHOST, DataNode_2))
+			temp_socket_2.connect((DATANODEHOST, DataNode_2))
 			ALL_SOCKET[DataNode_2] = temp_socket_2
 
 			temp_socket_3 = socket.socket()
 			temp_socket_3.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 			temp_socket_3.bind(('127.0.0.1', int(USER_IP)))
-			temp_socket_3.connect((NAMENODEHOST, DataNode_3))
+			temp_socket_3.connect((DATANODEHOST, DataNode_3))
 			ALL_SOCKET[DataNode_3] = temp_socket_3
 
 			temp_socket_4 = socket.socket()
 			temp_socket_4.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 			temp_socket_4.bind(('127.0.0.1', int(USER_IP)))
-			temp_socket_4.connect((NAMENODEHOST, DataNode_4))
+			temp_socket_4.connect((DATANODEHOST, DataNode_4))
 			ALL_SOCKET[DataNode_4] = temp_socket_4
 
 			temp_socket_5 = socket.socket()
 			temp_socket_5.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 			temp_socket_5.bind(('127.0.0.1', int(USER_IP)))
-			temp_socket_5.connect((NAMENODEHOST, DataNode_5))
+			temp_socket_5.connect((DATANODEHOST, DataNode_5))
 			ALL_SOCKET[DataNode_5] = temp_socket_5
+
+			temp_socket_6 = socket.socket()
+			temp_socket_6.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+			temp_socket_6.bind(('127.0.0.1', int(USER_IP)))
+			temp_socket_6.connect((LOCKHOST, LOCKPORT))
+			LOCK_SOCKET = temp_socket_6
 			
 			USER_PATH = info
 			USER_NAME = args[0]
@@ -276,7 +283,7 @@ def execute(cmd, args):
 				print 'Login first.'
 				return False
 
-			status, info = file_system.rm(USER_NAME, USER_PATH, USER_PRK , USER_IP, SOCKET, ALL_SOCKET, args)
+			status, info = file_system.rm(USER_NAME, USER_PATH, USER_PRK , USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, args)
 			if not status:
 				print 'Fail to remove file %s because %s.' %(args[0], info)
 				return False
@@ -291,7 +298,7 @@ def execute(cmd, args):
 				print 'Login first.'
 				return False
 
-			status, info = file_system.rm_r(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args)
+			status, info = file_system.rm_r(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, args)
 			if not status:
 				print 'Fail to remove directory %s because %s.' %(args[0], info)
 				return False
@@ -306,7 +313,7 @@ def execute(cmd, args):
 			print 'Login first.'
 			return False
 
-		status, info = file_system.upload(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args)
+		status, info = file_system.upload(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, args)
 
 		if not status:
 			print 'Fail to upload file %s because %s.' %(args[0], info)
@@ -322,7 +329,7 @@ def execute(cmd, args):
 			print 'Login first.'
 			return False
 
-		status, info = file_system.download(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args)
+		status, info = file_system.download(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, args)
 
 		if not status:
 			print 'Fail to download file %s because %s.' %(args[0], info)
@@ -341,7 +348,7 @@ def execute(cmd, args):
 			print 'Login first.'
 			return False
 
-		status, info = file_system.mv(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args)
+		status, info = file_system.mv(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, args)
 
 		if not status:
 			print 'Fail to move file %s because %s.' %(args[0], info)
@@ -360,7 +367,7 @@ def execute(cmd, args):
 			print 'Login first.'
 			return False
 
-		status, info = file_system.cp(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, args)
+		status, info = file_system.cp(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, args)
 
 		if not status:
 			print 'Fail to copy file %s because %s.' %(args[0], info)
@@ -467,17 +474,17 @@ def execute(cmd, args):
 
 if __name__ == '__main__':
 
-	print 'Encrypt File System Start...'
+	print 'Distributed Encrypted File System Start...'
 	print "Type 'help' for user guide..."
 	try:
 		while True:
 			try:
 				show_path = USER_PATH.split('/')
-				u_input = raw_input('efs/> ' + show_path[-1] + '/> ')
+				u_input = raw_input('DEFS/> ' + show_path[-1] + '/> ')
 				cmd = u_input.split(' ')[0]
 				args = u_input.split(' ')[1:]
 				if cmd == 'quit()':
-					print 'Quit EFS...'
+					print 'Quit DEFS...'
 					SOCKET.close()
 					break
 				else:
@@ -487,5 +494,5 @@ if __name__ == '__main__':
 				continue
 
 	except:
-		print "Error Entering EFS"
+		print "Error Entering DEFS"
 	

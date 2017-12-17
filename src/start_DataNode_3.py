@@ -3,5 +3,5 @@
 from DataNode import DataNodeServer
 from defination import *
 
-myServer = DataNodeServer(NAMENODEHOST, DataNode_3, '/Users/mac/Desktop/Distributed-Encrypted-File-System/DEFS/DataNode/7003/')
+myServer = DataNodeServer(DATANODEHOST, DataNode_3, '/Users/mac/Desktop/Distributed-Encrypted-File-System/DEFS/DataNode/7003/')
 myServer.run()

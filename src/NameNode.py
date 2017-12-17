@@ -17,9 +17,9 @@ class NameNodeServer(object):
 
 	def __init__(self, host=None, port=None, path=None):
 		self.port = port;
-		self.srvsock = socket.socket( socket.AF_INET, socket.SOCK_STREAM )
+		self.srvsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.srvsock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-		self.srvsock.bind( (host, port) )
+		self.srvsock.bind((host, port))
 		self.srvsock.listen(5)
 		self.Clients = [self.srvsock]
 		self.DataNode = {}

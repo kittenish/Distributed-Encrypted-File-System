@@ -43,7 +43,7 @@ def execute(cmd, args):
 		dic_help['quit()'] = 'quit the efs'
 		dic_help['cd'] = 'change directory (absolute/relative path are suppotred)'
 		dic_help['pwd'] = 'show current absolute path'
-		dic_help['ls'] = 'list all non-share files, add "-s" if you are in the "share" file directory'
+		dic_help['ls'] = 'list all files'
 		dic_help['mkdir'] = 'make a new directory (both absolute/relative path are suppotred)'
 		dic_help['login'] = 'login with user name and specific private key location provided'
 		dic_help['register'] = 'regist with user name and specific location to store your private key'
@@ -52,14 +52,7 @@ def execute(cmd, args):
 		dic_help['mv'] = 'move the file from src to dest (only file move is suppotred, both absolute/relative path are suppotred)'
 		dic_help['rm'] = 'remove file (add "-r" to remove directory, both absolute/relative path are suppotred, recursion not suppotred)'
 		dic_help['cp'] = 'copy file from src to dest (only file copy is suppotred, both absolute/relative path are suppotred)'
-		dic_help['share'] = 'share file to user in mode and store private at loc (-r for read only; -w for write only; -wr for read and write)'
-		dic_help['share_more1'] = 'shared files are listed in "user/share/owner/file" (location changes are not suppotred)'
-		dic_help['share_more2'] = 'please share with all the members at the same time (member updates are not suppotred)'
-		dic_help['share_more3'] = 'please make sure that you have yourself included in the members'
-		dic_help['download-share'] = 'download share file (path listed in share directory) to loc with specific location for private keys provided'
-		dic_help['upload-share'] = 'upload remote file (absolute path only) for share group with specific location for private keys provided'
-		dic_help['upload-share-more'] = 'if you want to share files from the EFS, please download it first and use command "upload-share"'
-
+		
 		if len(args) == 0:
 			print ''
 			print '%10s %-50s %s' %(' ', 'help', dic_help['help']) 
@@ -78,14 +71,6 @@ def execute(cmd, args):
 			print '%10s %-50s %s' %(' ', 'upload [src] [dest]', dic_help['upload'])
 			print '%10s %-50s %s' %(' ', 'download [src] [dest]', dic_help['download'])
 			print ''
-			print '%10s %-50s %s' %(' ', 'share [file] [mode] [user_name] [loc]...', dic_help['share'])
-			print '%61s %s' %(' ', dic_help['share_more1'])
-			print '%61s %s' %(' ', dic_help['share_more2'])
-			print '%61s %s' %(' ', dic_help['share_more3'])
-			print '%10s %-50s %s' %(' ', 'download-share [file] [RSA_1] [RSA_2] [loc]', dic_help['download-share'])
-			print '%10s %-50s %s' %(' ', 'upload-share [file] [group] [RSA_1] [RSA_3]', dic_help['upload-share'])
-			print '%61s %s' %(' ', dic_help['upload-share-more'])
-			print ''
 			return True
 
 		else:
@@ -95,22 +80,6 @@ def execute(cmd, args):
 				print 'No command named %s.' %args[0]
 				print "Type 'help' for user guide..."
 				return False
-			
-			if args[0] == 'share':
-				print ''
-				print '%10s %-50s %s' %(' ', 'share [mode] [file] [user_name]', dic_help['share'])
-				print '%61s %s' %(' ', dic_help['share_more1'])
-				print '%61s %s' %(' ', dic_help['share_more2'])
-				print '%61s %s' %(' ', dic_help['share_more3'])
-				print ''
-				return True
-
-			if args[0] == 'upload-share':
-				print ''
-				print '%10s %-50s %s' %(' ', 'upload-share [file] [group] [RSA_1] [RSA_3]', dic_help['upload-share'])
-				print '%61s %s' %(' ', dic_help['upload-share-more'])
-				print ''
-				return True
 
 			print ''
 			print '%10s %-60s %s' %(' ', args[0], dic_help[args[0]]) 
@@ -374,94 +343,6 @@ def execute(cmd, args):
 			return False
 		else:
 			print 'Copy file %s successfully to %s .' %(args[0], args[1])
-			return True
-	
-	elif cmd == 'share':
-		'''
-		share [file] [mode] [user_name] [loc]
-		'''
-		if len(args) < 4:
-			print 'Too few arguments for command %s.' %cmd
-			return False
-		elif len(args) % 3 != 1:
-			print 'Not correct number of arguments for command %s.' %cmd
-			return False
-		elif not LOGIN_IN:
-			print 'Login first.'
-			return False
-
-		pair_user_mode = {}
-		pair_user_loc = {}
-
-		i = 1
-		while i < len(args)-2:
-			pair_user_mode[args[i+1]] = args[i]
-			pair_user_loc[args[i+1]] = args[i+2]
-			i = i + 3
-		
-		for i in pair_user_mode.values():
-			if not (i == '-r' or i == '-w' or i == '-wr'):
-				print 'No mode named %s.' %i
-				print "Type 'help " + str(cmd) + "' for more information"
-				return False
-		
-		status, info = file_system.check_share(USER_NAME, USER_PATH, args[0], pair_user_mode)
-
-		if not status:
-			print 'Fail to share file %s because %s.' %(args[0], info)
-			return False 
-		
-		status, info = file_system.prepare_share(USER_NAME, USER_PATH, USER_PRK, args[0], pair_user_mode, pair_user_loc, USER_IP, SOCKET, ALL_SOCKET)
-
-		if info == 'directory exsits':
-			print 'Share group exsits, use "share_update" to share more files.'
-			print "Type 'help share_update' for more information"
-			return False
-
-		if not status:
-			print 'Fail to share file %s because %s.' %(args[0], info)
-			return False
-		else:
-			print 'Share file %s successfully.' %(args[0])
-			print 'Please remember that your share group name is %s.' %(info)
-			return True
-
-	elif cmd == 'upload-share':
-		'''
-		upload-share [file] [group] [RSA_1] [RSA_3]
-		'''
-		if not verifyargs(cmd, args, 4):
-			return False
-		elif not LOGIN_IN:
-			print 'Login first.'
-			return False
-
-		status, info = file_system.upload_share(USER_NAME, USER_IP, SOCKET, ALL_SOCKET, args)
-
-		if not status:
-			print 'Fail to upload-share file %s because %s.' %(args[0], info)
-			return False
-		else:
-			print 'Upload-share file %s successfully to %s .' %(args[0], args[1])
-			return True
-
-	elif cmd == 'download-share':
-		'''
-		download-share [file] [RSA_1] [RSA_2] [loc]
-		'''
-		if not verifyargs(cmd, args, 4):
-			return False
-		elif not LOGIN_IN:
-			print 'Login first.'
-			return False
-
-		status, info = file_system.download_share(USER_NAME, USER_IP, SOCKET, ALL_SOCKET, args)
-
-		if not status:
-			print 'Fail to download-share file %s because %s.' %(args[0], info)
-			return False
-		else:
-			print 'Download-share file %s successfully to %s .' %(args[0], args[3])
 			return True
 
 	else:

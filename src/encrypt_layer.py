@@ -864,7 +864,7 @@ def check_share(USER_NAME, USER_PATH, source, pair):
 	info = 'succeed'
 	return True, info
 
-def prepare_share(USER_NAME, USER_PATH, USER_PRK, source, pair_user_mode, pair_user_loc):
+def prepare_share(USER_NAME, USER_PATH, USER_PRK, source, pair_user_mode, pair_user_loc, USER_IP, SOCKET, ALL_SOCKET):
 
 	share_user = pair_user_mode.keys()
 	share_file = '_'.join(share_user)
@@ -1009,20 +1009,27 @@ def prepare_share(USER_NAME, USER_PATH, USER_PRK, source, pair_user_mode, pair_u
 			json.dump(data, f)
 
 	try:
-		USER_PK, USER_PRK, USER_AES = _get_keys(USER_NAME, USER_PRK)
+		USER_PK, _USER_PRK, USER_AES = _get_keys(USER_NAME, USER_PRK)
 	except:
 		info = 'get keys error'
 		return False, info
 
 	try:
 		# get encrypted name
-		dest_file = EFS_DIR + share_file + '/' + filename
-		en_source_file_name = encrypt.encrypt_filename(USER_PK, source_file)
-		en_source_file_name = en_source_file_name.replace("/",r"_")[0:100]
-		en_share_file_name = encrypt.encrypt_filename(USER_PK, dest_file)
-		en_share_file_name = en_share_file_name.replace("/",r"_")[0:100]
+		# dest_file = EFS_DIR + share_file + '/' + filename
+		# en_source_file_name = encrypt.encrypt_filename(USER_PK, source_file)
+		# en_source_file_name = en_source_file_name.replace("/",r"_")[0:100]
+		# en_share_file_name = encrypt.encrypt_filename(USER_PK, dest_file)
+		# en_share_file_name = en_share_file_name.replace("/",r"_")[0:100]
+
+		download(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, [source, '/Users/mac/Desktop'])
+		rm(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, [filename])
+		upload(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, ['/Users/mac/Desktop/'+filename, share_file])
+		#os.system(PASS + 'ssh ' + SSH_SERVER + ' mv ' + SERVER_PATH + en_old_file_name + ' ' + SERVER_PATH + en_new_file_name)
+		os.remove('/Users/mac/Desktop/'+filename)
+		#os.rename(old_file, new_file)
 		
-		os.system(PASS + 'ssh ' + SSH_SERVER + ' mv ' + SERVER_PATH + en_source_file_name + ' ' + SERVER_PATH + en_share_file_name)
+		#os.system(PASS + 'ssh ' + SSH_SERVER + ' mv ' + SERVER_PATH + en_source_file_name + ' ' + SERVER_PATH + en_share_file_name)
 	except:
 		info = 'cannot move file on the server'
 		return False, info
@@ -1038,7 +1045,7 @@ def prepare_share(USER_NAME, USER_PATH, USER_PRK, source, pair_user_mode, pair_u
 	info = share_file
 	return True, info
 
-def upload_share(USER_NAME, args):
+def upload_share(USER_NAME, USER_IP, SOCKET, ALL_SOCKET, args):
 
 	file_path = args[0]
 	group_name = args[1]
@@ -1112,7 +1119,20 @@ def upload_share(USER_NAME, args):
 	with open(EFS_DIR + group_name + '/' + en_share_path, 'w') as f:
 		f.write(cipherfile)
 
-	os.system(PASS + 'scp ' + EFS_DIR + group_name + '/' + en_share_path + ' ' + SERVER)
+	_inquire(en_share_path, SOCKET, len(cipherfile))
+		
+	DataNode = _get_datanode(SOCKET)
+
+	#_upload_DataNode(USER_IP, cipherfile[0:16384], DataNode_1, 1, en_file_name)
+		
+	for i in DataNode.keys():
+		for j in DataNode[i]:
+			if int(i) != len(cipherfile) / 16384 + 1:
+				_upload_DataNode(USER_IP, cipherfile[(int(i)-1)*16384:int(i)*16384], ALL_SOCKET[int(j)], int(i), en_share_path+'_'+str(i), int(j))
+			else:
+				_upload_DataNode(USER_IP, cipherfile[(int(i)-1)*16384:len(cipherfile)], ALL_SOCKET[int(j)], int(i), en_share_path+'_'+str(i), int(j))			
+		
+	#os.system(PASS + 'scp ' + EFS_DIR + group_name + '/' + en_share_path + ' ' + SERVER)
 	os.rename(EFS_DIR + group_name + '/' + en_share_path, share_path)
 
 	member = group_name.split('_')
@@ -1127,7 +1147,7 @@ def upload_share(USER_NAME, args):
 	info = 'succeed'
 	return True, info
 
-def download_share(USER_NAME, args):
+def download_share(USER_NAME, USER_IP, SOCKET, ALL_SOCKET, args):
 	file_path = args[0]
 	loc_RSA_1 = args[1]
 	loc_RSA_2 = args[2]
@@ -1186,11 +1206,23 @@ def download_share(USER_NAME, args):
 	en_file_name = en_file_name.replace("/",r"_")[0:100]
 		
 	# download file
-	os.system(PASS + 'scp ' + SERVER + en_file_name + ' ' + save_pos)
-	os.rename(save_pos + '/' + en_file_name, save_pos + '/' + filename)
+	#os.system(PASS + 'scp ' + SERVER + en_file_name + ' ' + save_pos)
+	_inquire(en_file_name, SOCKET, 0)
+		
+	DataNode = _get_datanode(SOCKET)
 
-	with open(save_pos + '/' + filename, 'r') as f:
-		cipherfile = f.read()
+	#_upload_DataNode(USER_IP, cipherfile[0:16384], DataNode_1, 1, en_file_name)
+		
+	i = 1
+	cipherfile = ''
+	while DataNode.has_key(str(i)):
+		datanode_port = int(DataNode[str(i)][0])
+		data = str(_download_DataNode(en_file_name+'_'+str(i), datanode_port, ALL_SOCKET[datanode_port], int(i)))
+		cipherfile = cipherfile + data
+		i = i + 1
+
+	# os.rename(save_pos + '/' + en_file_name, save_pos + '/' + filename)
+	#os.rename(save_pos + '/' + en_file_name, save_pos + '/' + filename)
 
 	signature = cipherfile[0:344]
 	cipherfile = cipherfile[344:]

@@ -404,7 +404,7 @@ def execute(cmd, args):
 			print 'Fail to share file %s because %s.' %(args[0], info)
 			return False 
 		
-		status, info = file_system.prepare_share(USER_NAME, USER_PATH, USER_PRK, args[0], pair_user_mode, pair_user_loc)
+		status, info = file_system.prepare_share(USER_NAME, USER_PATH, USER_PRK, args[0], pair_user_mode, pair_user_loc, USER_IP, SOCKET, ALL_SOCKET)
 
 		if info == 'directory exsits':
 			print 'Share group exsits, use "share_update" to share more files.'
@@ -429,7 +429,7 @@ def execute(cmd, args):
 			print 'Login first.'
 			return False
 
-		status, info = file_system.upload_share(USER_NAME, args)
+		status, info = file_system.upload_share(USER_NAME, USER_IP, SOCKET, ALL_SOCKET, args)
 
 		if not status:
 			print 'Fail to upload-share file %s because %s.' %(args[0], info)
@@ -448,7 +448,7 @@ def execute(cmd, args):
 			print 'Login first.'
 			return False
 
-		status, info = file_system.download_share(USER_NAME, args)
+		status, info = file_system.download_share(USER_NAME, USER_IP, SOCKET, ALL_SOCKET, args)
 
 		if not status:
 			print 'Fail to download-share file %s because %s.' %(args[0], info)

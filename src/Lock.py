@@ -54,6 +54,7 @@ class LockServer(object):
 								sock.sendall('0')
 							else:
 								self.write_lock[message['fname']] = 1
+								print 'Grant write lock to '+message['fname']
 								sock.sendall('1')
 
 						elif message['type'] == str(WRITE_RELEASE):
@@ -62,6 +63,7 @@ class LockServer(object):
 								sock.sendall('0')
 							else:
 								del self.write_lock[message['fname']]
+								print 'Release write lock for '+message['fname']
 								sock.sendall('1')
 
 						elif message['type'] == str(READ_LOCK):
@@ -71,6 +73,7 @@ class LockServer(object):
 							elif self.write_lock.has_key(message['fname']):
 								sock.sendall('0')
 							else:
+								print 'Grant read lock to '+message['fname']
 								if self.read_lock.has_key(message['fname']):
 									self.read_lock[message['fname']] += 1
 								else:
@@ -83,9 +86,11 @@ class LockServer(object):
 								sock.sendall('0')
 							elif self.read_lock[message['fname']] == 1:
 								del self.read_lock[message['fname']]
+								print 'Release read lock for '+message['fname']
 								sock.sendall('1')
 							else:
 								self.read_lock[message['fname']] -= 1
+								print 'Release read lock for '+message['fname']
 								sock.sendall('1')
 
 	

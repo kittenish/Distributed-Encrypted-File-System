@@ -145,7 +145,7 @@ def _delete_on_namenode(en_file_name, SOCKET):
 	prepare_mess['type'] = str(DELETE)
 	length = str(len(str(prepare_mess))).rjust(4,'0')
 	SOCKET.sendall(length + str(prepare_mess))
-	print 'Remove file name from NameNode %d...' %(int(chunk_num), int(datanode_port))	
+	print 'Remove file name from NameNode...' 	
 
 def _download_DataNode(en_file_name, datanode_port, SOCKET, chunk_num):
 
@@ -440,7 +440,7 @@ def rm(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET,
 
 		for i in DataNode.keys():
 			for j in DataNode[i]:
-				_delete_on_datanode(en_file_name+'_'+str(i), j, ALL_SOCKET[j], int(i))
+				_delete_on_datanode(en_file_name+'_'+str(i), j, ALL_SOCKET[int(j)], int(i))
 			
 		_release_write_lock(LOCK_SOCKET, en_file_name)
 
@@ -790,17 +790,16 @@ def mv(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET,
 		# en_old_file_name = en_old_file_name.replace("/",r"_")[0:100]
 		# en_new_file_name = encrypt.encrypt_filename(USER_PK, new_file)
 		# en_new_file_name = en_new_file_name.replace("/",r"_")[0:100]
-		download(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, [args[0], '/Users/mac/Desktop'])
+		download(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, [args[0], TEMP_PLACE_])
 		rm(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, [old_name])
 		new_split = new_name.split('/')
 		new_filename = new_split[-1]
 		old_split = old_name.split('/')
 		old_filename = old_split[-1]
-		os.rename('/Users/mac/Desktop/'+old_filename, '/Users/mac/Desktop/'+new_filename)
-		upload(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKETs, ['/Users/mac/Desktop/'+new_filename, '/'.join(new_split[0:len(new_split)-1])])
+		os.rename(TEMP_PLACE+old_filename, TEMP_PLACE+new_filename)
+		upload(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, [TEMP_PLACE+new_filename, '/'.join(new_split[0:len(new_split)-1])])
 		#os.system(PASS + 'ssh ' + SSH_SERVER + ' mv ' + SERVER_PATH + en_old_file_name + ' ' + SERVER_PATH + en_new_file_name)
-		os.remove('/Users/mac/Desktop/'+new_filename)
-		os.rename(old_file, new_file)
+		os.remove(TEMP_PLACE+new_filename)
 	except:
 		info = 'cannot move file on the server'
 		return False, info
@@ -868,15 +867,15 @@ def cp(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET,
 		# en_new_file_name = encrypt.encrypt_filename(USER_PK, new_file)
 		# en_new_file_name = en_new_file_name.replace("/",r"_")[0:100]
 
-		download(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, [args[0], '/Users/mac/Desktop'])
+		download(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, [args[0], TEMP_PLACE_])
 		new_split = new_name.split('/')
 		new_filename = new_split[-1]
 		old_split = old_name.split('/')
 		old_filename = old_split[-1]
-		os.rename('/Users/mac/Desktop/'+old_filename, '/Users/mac/Desktop/'+new_filename)
-		upload(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, ['/Users/mac/Desktop/'+new_filename, '/'.join(new_split[0:len(new_split)-1])])
+		os.rename(TEMP_PLACE+old_filename, TEMP_PLACE+new_filename)
+		upload(USER_NAME, USER_PATH, USER_PRK, USER_IP, SOCKET, ALL_SOCKET, LOCK_SOCKET, [TEMP_PLACE+new_filename, '/'.join(new_split[0:len(new_split)-1])])
 		#os.system(PASS + 'ssh ' + SSH_SERVER + ' mv ' + SERVER_PATH + en_old_file_name + ' ' + SERVER_PATH + en_new_file_name)
-		os.remove('/Users/mac/Desktop/'+new_filename)
+		os.remove(TEMP_PLACE+new_filename)
 	except:
 		info = 'cannot copy file to the server'
 		return False, info
@@ -896,11 +895,6 @@ if __name__ == '__main__':
 	#status, info = upload('test', 'test', '/Users/mac/Desktop/test.pem', ['/Users/mac/Desktop/1.png', 'dict1'])
 	#read('hey', 'hey', '/Users/mac/Desktop/system_security/pj/Encryped-file-system/src/hey.pem', ['/hey/dic1/1.png', '/Users/mac/Desktop'])
 	#status, info = mv('hey', 'hey', '/Users/mac/Desktop/system_security/pj/Encryped-file-system/src/hey.pem', ['/hey/dic1/1.png', '/hey/dic1/2.png'])
-	#status, info = check_share('kitten', 'kitten', 'dic1/1.png', {'bi': '-r', 'gibh': '-wr', 'vihbk': '-w'})
-	#status, info = prepare_share('kitten', 'kitten', '/Users/mac/Desktop/system_security/pj/Encryped-file-system/src/kitten.pem', 'dic1/1.png', {'miao': '-r', 'hey': '-w', 'kitten': '-wr'}, {'miao': '/Users/mac/Desktop/system_security/pj/Encryped-file-system/src/test-share/read', 'hey': '/Users/mac/Desktop/system_security/pj/Encryped-file-system/src/test-share/write', 'kitten': '/Users/mac/Desktop/system_security/pj/Encryped-file-system/src/test-share/read-write'})
-	#status, info = ls_s('kitten', 'kitten/share')
-	#status, info = upload_share('miao', ['/Users/mac/Desktop/2.png', 'miao_hey_kitten', '/Users/mac/Desktop/system_security/pj/Encryped-file-system/src/test-share/write/miao_hey_kitten_RSA_1.pem', '/Users/mac/Desktop/system_security/pj/Encryped-file-system/src/test-share/write/miao_hey_kitten_RSA_3.pem'])
-	#status, info = download_share('miao', ['miao/2.png', '/Users/mac/Desktop/system_security/pj/Encryped-file-system/src/test-share/read/miao_hey_kitten_RSA_1.pem', '/Users/mac/Desktop/system_security/pj/Encryped-file-system/src/test-share/read/miao_hey_kitten_RSA_2.pem','/Users/mac/Desktop/temp/'])
 	#status, info = cp('hey', 'hey', '/Users/mac/Desktop/system_security/pj/Encryped-file-system/src/hey.pem', ['/hey/dic1/1.png', '/hey/dic1/1.png'])
 	print info
 	pass

@@ -355,7 +355,7 @@ Computing Machinery]
   \@xsect{#3}}
 \let\@footnotemark@nolink\@footnotemark
 \let\@footnotetext@nolink\@footnotetext
-\RequirePackage[bookmarksnumbered,unicode]{hyperref}
+\RequirePackage[bookmarksnumbered,unicode,colorlinks,linkcolor=red]{hyperref}
 \pdfstringdefDisableCommands{%
   \def\unskip{}
   \def\textbullet{- }

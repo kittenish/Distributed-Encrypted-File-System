@@ -45,7 +45,7 @@ def execute(cmd, args):
 		dic_help['pwd'] = 'show current absolute path'
 		dic_help['ls'] = 'list all files'
 		dic_help['mkdir'] = 'make a new directory (both absolute/relative path are suppotred)'
-		dic_help['login'] = 'login with user name and specific private key location provided'
+		dic_help['login'] = 'login with user name , private key location and an available socket port'
 		dic_help['register'] = 'regist with user name and specific location to store your private key'
 		dic_help['upload'] = 'upload the src file to the dest directory (both absolute/relative path are suppotred)'
 		dic_help['download'] = 'download the src file to the dest directory (both absolute/relative path are suppotred)'
@@ -67,7 +67,7 @@ def execute(cmd, args):
 			print '%10s %-50s %s' %(' ', 'cp [src] [dest]', dic_help['cp'])
 			print ''
 			print '%10s %-50s %s' %(' ', 'register [user_name] [PRK_loc]', dic_help['register'])
-			print '%10s %-50s %s' %(' ', 'login [user_name] [PRK_loc]', dic_help['login'])
+			print '%10s %-50s %s' %(' ', 'login [user_name] [PRK_loc] [socket_port]', dic_help['login'])
 			print '%10s %-50s %s' %(' ', 'upload [src] [dest]', dic_help['upload'])
 			print '%10s %-50s %s' %(' ', 'download [src] [dest]', dic_help['download'])
 			print ''
